@@ -80,6 +80,9 @@ export default class CanvasSelect extends EventBus {
     /** 所有标注数据 */
     dataset: AllShape[] = [];
 
+    tooltipEl!: HTMLDivElement;
+    hoverShape: AllShape | null = null;
+
     offScreen: HTMLCanvasElement | undefined
 
     offScreenCtx: CanvasRenderingContext2D | null | undefined
@@ -170,6 +173,7 @@ export default class CanvasSelect extends EventBus {
         this.handleDblclick = this.handleDblclick.bind(this);
         this.handleKeyup = this.handleKeyup.bind(this);
         this.handleKeydown = this.handleKeydown.bind(this);
+        this.createTooltip();
         const container = typeof el === 'string' ? document.querySelector(el) : el;
         if (container instanceof HTMLCanvasElement) {
             this.canvas = container;
@@ -205,6 +209,25 @@ export default class CanvasSelect extends EventBus {
     /** 图片原始最大边尺寸 */
     get imageOriginMax() {
         return Math.max(this.IMAGE_ORIGIN_WIDTH, this.IMAGE_ORIGIN_HEIGHT);
+    }
+
+    createTooltip() {
+        const el = document.createElement('div');
+        el.style.position = 'fixed';
+        el.style.pointerEvents = 'none';
+        el.style.zIndex = '9999';
+        el.style.padding = '4px 8px';
+        el.style.background = 'rgba(0,0,0,0.75)';
+        el.style.color = '#fff';
+        el.style.fontSize = '12px';
+        el.style.borderRadius = '4px';
+        el.style.whiteSpace = 'nowrap';
+        el.className = 'canvas-select-tooltip'
+        el.style.display = 'none';
+
+        document.body.appendChild(el);
+
+        this.tooltipEl = el;
     }
 
 
@@ -508,7 +531,7 @@ export default class CanvasSelect extends EventBus {
         const nx = Math.round(offsetX - this.originX / this.scale);
         const ny = Math.round(offsetY - this.originY / this.scale);
         this.position = [nx, ny]
-        if (((!this.isMobile && (e as MouseEvent).buttons === 1) || (this.isMobile && (e as TouchEvent).touches?.length === 1)) && this.activeShape.type) {
+        if (((!this.isMobile && (e as MouseEvent).buttons === 1) || (this.isMobile && (e as TouchEvent).touches?.length === 1)) && this.activeShape.type) {                  
             if (this.ctrlIndex > -1 && this.remmber.length && (this.isInBackground(e) || this.activeShape.type === Shape.Circle)) {
                 const [[x, y]] = this.remmber;
                 // resize矩形或旋转
@@ -654,6 +677,32 @@ export default class CanvasSelect extends EventBus {
         } else {
             if (!this.isCtrlKey) {
                 this.update();
+            }
+        }
+
+        if (this.isInBackground(e)) {
+            const [, hitShape] = this.hitOnShape(this.mouse);
+
+            if (hitShape !== this.hoverShape) {
+                this.hoverShape = hitShape || null;
+
+                if (
+                    hitShape &&
+                    hitShape.label &&
+                    hitShape.label.length > this.labelMaxLen + 1
+                ) {
+                    this.tooltipEl.style.display = 'block';
+                    this.tooltipEl.innerText = hitShape.label;
+                } else {
+                    this.tooltipEl.style.display = 'none';
+                }
+            }
+
+            const rect = this.canvas?.getBoundingClientRect();
+
+            if (rect && this.hoverShape) {
+                this.tooltipEl.style.left = `${rect.left + mouseX + 12}px`;
+                this.tooltipEl.style.top = `${rect.top + mouseY + 12}px`;
             }
         }
     }
@@ -1295,7 +1344,7 @@ export default class CanvasSelect extends EventBus {
             this.ctx.fillStyle = labelFillStyle || this.labelFillStyle;
             this.ctx.fillRect(toleft ? (x - text.width - textPaddingLeft - currLineWidth / 2) : (x + currLineWidth / 2), isup ? (y - labelHeight - currLineWidth / 2) : (y + currLineWidth / 2), labelWidth, labelHeight);
             this.ctx.fillStyle = textFillStyle || this.textFillStyle;
-            this.ctx.fillText(newText, toleft ? (x - text.width) : (x + textPaddingLeft + currLineWidth / 2), isup ? (y - labelHeight + font + textPaddingTop) : (y + font + textPaddingTop + currLineWidth / 2), 180);
+            this.ctx.fillText(newText, toleft ? (x - text.width) : (x + textPaddingLeft + currLineWidth / 2), isup ? (y - labelHeight + font + textPaddingTop) : (y + font + textPaddingTop + currLineWidth / 2));
             this.ctx.restore();
         }
     }
@@ -1504,6 +1553,7 @@ export default class CanvasSelect extends EventBus {
         this.canvas.style.width = '';
         this.canvas.style.height = '';
         this.canvas.style.userSelect = '';
+        this.tooltipEl.remove();
     }
 
     /**

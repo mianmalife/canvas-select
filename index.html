@@ -640,6 +640,7 @@
         });
         instance = new CanvasSelect(canvas, document.getElementById('imageUrl').value);
         window.instance = instance;
+        loadSampleData()
 
         // 设置初始属性
         instance.ctrlRadius = navigator.userAgent.includes('Mobile') ? 6 : 3;
