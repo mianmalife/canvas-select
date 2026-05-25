@@ -689,7 +689,7 @@ export default class CanvasSelect extends EventBus {
                 if (
                     hitShape &&
                     hitShape.label &&
-                    hitShape.label.length > this.labelMaxLen + 1
+                    hitShape.label.length > this.labelMaxLen
                 ) {
                     this.tooltipEl.style.display = 'block';
                     this.tooltipEl.innerText = hitShape.label;
